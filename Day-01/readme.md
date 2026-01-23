@@ -6,3 +6,5 @@ Today I:
 - Learned how to create folders and files in GitHub
 
 Status: Completed
+
+Verifying changes
