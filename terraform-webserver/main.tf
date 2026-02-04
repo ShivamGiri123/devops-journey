@@ -1,14 +1,14 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
   }
 
 resource "aws_vpc" "Webserver_VPC" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support = true
 
 tags = {
-  Name = "Webserver_VPC"
+  Name = "${var.project_name}-vpc"
 }
 }
 # Internet Gateway
@@ -16,18 +16,18 @@ resource "aws_internet_gateway" "webserver_igw" {
   vpc_id = aws_vpc.Webserver_VPC.id
 
   tags = {
-    Name = "webserver-igw"
+    Name = "${var.project_name}-igw"
   }
 }
 # Subnet (Public)
 resource "aws_subnet" "webserver_subnet" {
   vpc_id                  = aws_vpc.Webserver_VPC.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
+  cidr_block              = var.subnet_cidr
+  availability_zone       = var.availability_zone
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "webserver-public-subnet"
+    Name = "${var.project_name}-public-subnet"
   }
 }
 # Route Table
@@ -40,7 +40,7 @@ resource "aws_route_table" "webserver_rt" {
   }
 
   tags = {
-    Name = "webserver-route-table"
+    Name = "${var.project_name}-route-table"
   }
 }
 
@@ -51,7 +51,7 @@ resource "aws_route_table_association" "webserver_rta" {
 }
 # Security Group
 resource "aws_security_group" "webserver_sg" {
-  name        = "webserver-security-group"
+  name        = "${var.project_name}-security-group"
   description = "Allow HTTP and SSH traffic"
   vpc_id      = aws_vpc.Webserver_VPC.id
 
@@ -83,13 +83,13 @@ resource "aws_security_group" "webserver_sg" {
   }
 
   tags = {
-    Name = "webserver-sg"
+    Name = "${var.project_name}-sg"
   }
 }
 # EC2 Instance (Web Server)
 resource "aws_instance" "webserver" {
-  ami                    = "ami-026992d753d5622bc"  # Amazon Linux 2 AMI (us-east-1)
-  instance_type          = "t2.micro"
+  ami                    = var.ami_id  # Amazon Linux 2 AMI (us-east-1)
+  instance_type          = var.instance_type
   subnet_id              = aws_subnet.webserver_subnet.id
   vpc_security_group_ids = [aws_security_group.webserver_sg.id]
 
@@ -104,6 +104,6 @@ resource "aws_instance" "webserver" {
               EOF
 
   tags = {
-    Name = "terraform-webserver"
+    Name = var.project_name
   }
 }
