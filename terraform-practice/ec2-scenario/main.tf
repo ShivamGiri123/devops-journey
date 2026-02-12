@@ -2,33 +2,39 @@
 provider "aws" {
 region = "us-east-1"
 }
-
-#data source from amazon to create amazon linux machine
-data "aws_ami" "linux-machine" {
+#data used for creating linux machine
+data "aws_ami" "web" {
 most_recent = true
 owners = ["amazon"]
 
-filter{
-	name = "name"
-	values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+filter {
+name = "name"
+values = ["amzn2-ami-hvm-*-x86_84-gp2"]
 }
 }
+#vpc
+resource "aws_vpc" "public" {
+cidr_block = "0.0.0.0/16"
+enable_dns_support = true
+enable_dns_hostnames = true
+
+tags = {
+name = "AWS-VPC"
+}
+}
+
 #security group
 resource "aws_security_group" "web-sg" {
-#name = "aws-security-group"
-#description = "Allow SSH and HTTP"
 vpc_id = aws_vpc.public.id
-
-#ingress ssh
+#inbound ssh trafic
 ingress{
-description = "SSH"
+description = "ssh"
 from_port = 22
 to_port = 22
 protocol = "tcp"
 cidr_blocks = ["0.0.0.0/0"]
 }
-
-#ingress http
+#inbound http traffic
 ingress{
 description = "HTTP"
 from_port = 80
@@ -36,35 +42,35 @@ to_port = 80
 protocol = "tcp"
 cidr_blocks = ["0.0.0.0/0"]
 }
-#egress all
+#outbound all
 egress{
-description = "All"
 from_port = 0
 to_port = 0
-protocol = -1
+protocol = "-1"
 cidr_blocks = ["0.0.0.0/0"]
 }
-
+}
+#subnet
+resource "aws_subnet" "subnet" {
+cidr_block = "0.0.1.0/24"
+availability_zone = "us-east-1a"
+vpc_id = aws_vpc.public.id
+map_public_ip_on_launch = true
 tags = {
-Name = "web-sg"
+Name = "AWS_Subnet"
 }
 }
-#Ec2 Server
+#ec2 instance
 resource "aws_instance" "web" {
-ami_id = data.aws_ami.linux-machine.id
+ami = data.aws_ami.web.id
 instance_type = "t2.micro"
 subnet_id = aws_subnet.subnet.id
-vpc_security_group_id = [aws_security_group.web-sg.id]
-
-tags = {
-Name = "web-sg"
-}
+vpc_security_group_ids = aws_security_group.web-sg.id
 }
 #output
-output "aws_instance_id" {
+output "instance_id" {
 value = aws_instance.web.id
 }
-#output
-output "aws_public_ip"{
-value = "aws_instance.web.ip"
+output "public_ip" {
+value = aws_instance.web.public_ip
 }
